@@ -35,31 +35,40 @@ namespace L_WallpaperAssistant
             init();
         }
 
-        private async Task<Dictionary<int, string>> getPictureUrlList(int index = 0, int number = 10, int width = 1920, int height = 1080)
+        private async Task<Dictionary<int, string>> getPictureUrlList(int index = 0, int number = 8, int width = 1920, int height = 1080)
         {
             string url = string.Format("http://www.bing.com/HPImageArchive.aspx?format=xml&idx={0}&n={1}&mkt=en-US", index, number);
             string imageBaseUrl = "http://www.bing.com";
             Dictionary<int, string> urlList = new Dictionary<int, string>();
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(url);
-            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            try
             {
-                string xmlStr = await response.Content.ReadAsStringAsync();
-                if (xmlStr.Contains("image"))
+                HttpResponseMessage response = await client.GetAsync(url);
+                if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    XmlDocument xmlDocument = new XmlDocument();
-                    xmlDocument.LoadXml(xmlStr);
-                    XmlNodeList xmlNodeList = xmlDocument.GetElementsByTagName("image");
-                    foreach (XmlNode xmlNode in xmlNodeList)
+                    string xmlStr = await response.Content.ReadAsStringAsync();
+                    if (xmlStr.Contains("image"))
                     {
-                        string imageUrl = string.Format("{0}{1}", imageBaseUrl, xmlNode.SelectSingleNode("url").InnerText);
-                        int startDate = int.Parse(xmlNode.SelectSingleNode("startdate").InnerText);
-                        Regex regex = new Regex(@"\d+x\d+");
-                        imageUrl = regex.Replace(imageUrl, string.Format("{0}x{1}", width, height));
-                        urlList.Add(startDate, imageUrl);
+                        XmlDocument xmlDocument = new XmlDocument();
+                        xmlDocument.LoadXml(xmlStr);
+                        XmlNodeList xmlNodeList = xmlDocument.GetElementsByTagName("image");
+                        foreach (XmlNode xmlNode in xmlNodeList)
+                        {
+                            string imageUrl = string.Format("{0}{1}", imageBaseUrl, xmlNode.SelectSingleNode("url").InnerText);
+                            int startDate = int.Parse(xmlNode.SelectSingleNode("startdate").InnerText);
+                            Regex regex = new Regex(@"\d+x\d+");
+                            imageUrl = regex.Replace(imageUrl, string.Format("{0}x{1}", width, height));
+                            urlList.Add(startDate, imageUrl);
+                        }
                     }
                 }
             }
+            catch (Exception)
+            {
+                //TODO write error log
+            }
+
+
             return urlList;
         }
 
@@ -71,25 +80,34 @@ namespace L_WallpaperAssistant
             }
             saveDir = saveDir.TrimEnd('\\') + "\\";
             HttpClient client = new HttpClient();
-            foreach (var url in imageUrlList)
+            try
             {
-                string fileName = string.Format("{0}_{1}", url.Key, Path.GetFileName(url.Value));
-
-                using (FileStream fs = File.Create(string.Format("{0}{1}", saveDir, fileName)))
+                foreach (var url in imageUrlList)
                 {
-                    using (Stream stream = await client.GetStreamAsync(url.Value))
-                    {
-                        byte[] buffer = new byte[1024];
-                        int bytesRead = 0;
-                        do
-                        {
-                            bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            await fs.WriteAsync(buffer, 0, bytesRead);
-                        } while (bytesRead > 0);
-                    }
-                }
+                    string fileName = string.Format("{0}_{1}", url.Key, Path.GetFileName(url.Value));
 
+                    using (FileStream fs = File.Create(string.Format("{0}{1}", saveDir, fileName)))
+                    {
+                        using (Stream stream = await client.GetStreamAsync(url.Value))
+                        {
+                            byte[] buffer = new byte[1024];
+                            int bytesRead = 0;
+                            do
+                            {
+                                bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                                await fs.WriteAsync(buffer, 0, bytesRead);
+                            } while (bytesRead > 0);
+                        }
+                    }
+
+                }
             }
+            catch (Exception)
+            {
+                //TODO write error log
+            }
+
+
         }
 
 
