@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace L_WallpaperAssistant
 {
@@ -25,6 +26,8 @@ namespace L_WallpaperAssistant
             using (Bitmap bitmap = new Bitmap(imagePath))
             {
                 string wallpaperPath = AppDomain.CurrentDomain.BaseDirectory + "wallpaper.bmp";
+                File.Delete(wallpaperPath);
+                Thread.Sleep(500);
                 bitmap.Save(wallpaperPath, ImageFormat.Bmp);
 
                 RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);

@@ -28,6 +28,9 @@ namespace L_WallpaperAssistant
         private string downloadDir = AppDomain.CurrentDomain.BaseDirectory + "download";
         private Timer downloadTimer = new Timer();
         private Timer wallpaperTimer = new Timer();
+        private System.Windows.Forms.NotifyIcon notifyIcon;
+        private bool isClosing = false;
+        private bool isHidden = false;
 
         public MainWindow()
         {
@@ -113,6 +116,9 @@ namespace L_WallpaperAssistant
 
         private async void init()
         {
+            this.initNotifyIcon();
+            this.Hide();
+            this.isHidden = true;
             await getWallpapers();
             setNextWallpaper();
             downloadTimer.Interval = 4 * 3600 * 1000;
@@ -121,6 +127,70 @@ namespace L_WallpaperAssistant
             wallpaperTimer.Elapsed += WallpaperTimer_Elapsed;
             downloadTimer.Start();
             wallpaperTimer.Start();
+        }
+
+        private void initNotifyIcon()
+        {
+            notifyIcon = new System.Windows.Forms.NotifyIcon();
+            notifyIcon.BalloonTipTitle = this.Title;
+            notifyIcon.Icon = new System.Drawing.Icon(AppDomain.CurrentDomain.BaseDirectory + @"leo_32X32.ico");
+            notifyIcon.Visible = true;
+            notifyIcon.BalloonTipText = "Updating wallpapers...";
+            notifyIcon.ShowBalloonTip(1000);
+            notifyIcon.MouseClick += NotifyIcon_MouseClick;
+            notifyIcon.ContextMenu = this.getNotifyIconContextMenu();
+        }
+
+        private System.Windows.Forms.ContextMenu getNotifyIconContextMenu()
+        {
+            System.Windows.Forms.MenuItem updateWallpapersMenu = new System.Windows.Forms.MenuItem("Update Wallpapers");
+            System.Windows.Forms.MenuItem nextWallpaperMenu = new System.Windows.Forms.MenuItem("Next Wallpaper");
+            System.Windows.Forms.MenuItem optionsMenu = new System.Windows.Forms.MenuItem(
+                "Options", 
+                new System.Windows.Forms.MenuItem[] { updateWallpapersMenu, nextWallpaperMenu }
+                );
+            System.Windows.Forms.MenuItem exitMenu = new System.Windows.Forms.MenuItem("Exit");
+
+            updateWallpapersMenu.Click += UpdateWallpapersMenu_Click;
+            nextWallpaperMenu.Click += NextWallpaperMenu_Click;
+            exitMenu.Click += ExitMenu_Click;
+
+            return new System.Windows.Forms.ContextMenu(
+                new System.Windows.Forms.MenuItem[] { optionsMenu, exitMenu}
+                );
+        }
+
+        private void ExitMenu_Click(object sender, EventArgs e)
+        {
+            this.isClosing = true;
+            this.Close();
+        }
+
+        private void NextWallpaperMenu_Click(object sender, EventArgs e)
+        {
+            nextWallpaperButtonClick(null, null);
+        }
+
+        private void UpdateWallpapersMenu_Click(object sender, EventArgs e)
+        {
+            updateWallpapersButtonClick(null, null);
+        }
+
+        private void NotifyIcon_MouseClick(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                if (isHidden)
+                {
+                    this.Show();
+                    isHidden = false;
+                }
+                else
+                {
+                    this.Hide();
+                    isHidden = true;
+                }
+            }
         }
 
         private void WallpaperTimer_Elapsed(object sender, ElapsedEventArgs e)
@@ -140,7 +210,15 @@ namespace L_WallpaperAssistant
         private void setNextWallpaper()
         {
             var imagePathList = Directory.GetFiles(downloadDir);
-            DesktopWallpaper.SetDesktopBackground(imagePathList[wallpaperIndex], "Stretched");
+            try
+            {
+                DesktopWallpaper.SetDesktopBackground(imagePathList[wallpaperIndex], "Stretched");
+            }
+            catch (Exception)
+            {
+
+                //TODO write error log
+            }
             wallpaperIndex = (wallpaperIndex + 1) % imagePathList.Length;
         }
 
@@ -162,6 +240,20 @@ namespace L_WallpaperAssistant
             updateWallpapersButton.IsEnabled = false;
             await getWallpapers();
             updateWallpapersButton.IsEnabled = true;
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if(!isClosing)
+            {
+                e.Cancel = true;
+                this.Hide();
+                isHidden = true;
+            }
+            else
+            {
+                this.notifyIcon.Visible = false;
+            }
         }
     }
 }

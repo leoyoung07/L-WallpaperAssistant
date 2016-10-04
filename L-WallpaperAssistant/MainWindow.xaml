@@ -5,7 +5,10 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:L_WallpaperAssistant"
         mc:Ignorable="d"
-        Title="L-WallpaperAssistant" Height="161.137" Width="315.346" ResizeMode="CanMinimize">
+        Title="L-WallpaperAssistant" Height="161.137" Width="315.346" ResizeMode="CanMinimize" Closing="Window_Closing" ShowInTaskbar="False">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo/>
+    </Window.TaskbarItemInfo>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"></RowDefinition>
