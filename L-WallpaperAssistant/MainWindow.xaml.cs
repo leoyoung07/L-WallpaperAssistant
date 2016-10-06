@@ -125,14 +125,14 @@ namespace L_WallpaperAssistant
         }
 
 
-        private async void init()
+        private void init()
         {
             this.getConfigurations();
             this.initNotifyIcon();
             this.Hide();
             this.isHidden = true;
-            await getWallpapers();
-            setNextWallpaper(isRandom);
+            updateWallpapersButtonClick(null, null);
+            nextWallpaperButtonClick(null, null);
             downloadTimer.Interval = downloadInterval * 3600 * 1000;
             wallpaperTimer.Interval = wallpaperChangeInterval * 3600 * 1000;
             downloadTimer.Elapsed += DownloadTimer_Elapsed;
@@ -158,8 +158,6 @@ namespace L_WallpaperAssistant
             notifyIcon.BalloonTipTitle = this.Title;
             notifyIcon.Icon = new System.Drawing.Icon(AppDomain.CurrentDomain.BaseDirectory + @"leo_32X32.ico");
             notifyIcon.Visible = true;
-            notifyIcon.BalloonTipText = "Updating wallpapers...";
-            notifyIcon.ShowBalloonTip(1000);
             notifyIcon.MouseClick += NotifyIcon_MouseClick;
             notifyIcon.ContextMenu = this.getNotifyIconContextMenu();
         }
@@ -266,6 +264,8 @@ namespace L_WallpaperAssistant
 
         private async Task getWallpapers()
         {
+            notifyIcon.BalloonTipText = "Updating wallpapers...";
+            notifyIcon.ShowBalloonTip(1000);
             var imageUrlList = await getPictureUrlList(
                 fetchIndex, 
                 fetchNumber,
@@ -273,6 +273,8 @@ namespace L_WallpaperAssistant
                 wallpaperHeight
                 );
             await downloadImages(imageUrlList, downloadDir);
+            notifyIcon.BalloonTipText = "Wallpapers are up to date!";
+            notifyIcon.ShowBalloonTip(1000);
         }
 
         private void nextWallpaperButtonClick(object sender, RoutedEventArgs e)
