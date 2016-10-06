@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -31,6 +32,16 @@ namespace L_WallpaperAssistant
         private System.Windows.Forms.NotifyIcon notifyIcon;
         private bool isClosing = false;
         private bool isHidden = false;
+
+        private bool isRandom;
+        private int fetchNumber;
+        private int fetchIndex;
+        private double downloadInterval;
+        private double wallpaperChangeInterval;
+        private int wallpaperWidth;
+        private int wallpaperHeight;
+
+
 
         public MainWindow()
         {
@@ -116,17 +127,29 @@ namespace L_WallpaperAssistant
 
         private async void init()
         {
+            this.getConfigurations();
             this.initNotifyIcon();
             this.Hide();
             this.isHidden = true;
             await getWallpapers();
-            setNextWallpaper();
-            downloadTimer.Interval = 4 * 3600 * 1000;
-            wallpaperTimer.Interval = 0.5 * 3600 * 1000;
+            setNextWallpaper(isRandom);
+            downloadTimer.Interval = downloadInterval * 3600 * 1000;
+            wallpaperTimer.Interval = wallpaperChangeInterval * 3600 * 1000;
             downloadTimer.Elapsed += DownloadTimer_Elapsed;
             wallpaperTimer.Elapsed += WallpaperTimer_Elapsed;
             downloadTimer.Start();
             wallpaperTimer.Start();
+        }
+
+        private void getConfigurations()
+        {
+            isRandom = bool.Parse(ConfigurationManager.AppSettings["isRandom"]);
+            downloadInterval = double.Parse(ConfigurationManager.AppSettings["downloadInterval"]);
+            wallpaperChangeInterval = double.Parse(ConfigurationManager.AppSettings["wallpaperChangeInterval"]);
+            fetchIndex = int.Parse(ConfigurationManager.AppSettings["fetchIndex"]);
+            fetchNumber = int.Parse(ConfigurationManager.AppSettings["fetchNumber"]);
+            wallpaperWidth = int.Parse(ConfigurationManager.AppSettings["wallpaperWidth"]);
+            wallpaperHeight = int.Parse(ConfigurationManager.AppSettings["wallpaperHeight"]);
         }
 
         private void initNotifyIcon()
@@ -196,7 +219,7 @@ namespace L_WallpaperAssistant
         private void WallpaperTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             wallpaperTimer.Stop();
-            setNextWallpaper();
+            setNextWallpaper(isRandom);
             wallpaperTimer.Start();
         }
 
@@ -207,11 +230,17 @@ namespace L_WallpaperAssistant
             downloadTimer.Start();
         }
 
-        private void setNextWallpaper()
+        private void setNextWallpaper(bool isRandom = false)
         {
             var imagePathList = Directory.GetFiles(downloadDir);
+            if(isRandom)
+            {
+                Random rand = new Random();
+                wallpaperIndex = rand.Next(imagePathList.Length);
+            }
             try
             {
+                MessageBox.Show(wallpaperIndex.ToString());
                 DesktopWallpaper.SetDesktopBackground(imagePathList[wallpaperIndex], "Stretched");
             }
             catch (Exception)
@@ -219,19 +248,24 @@ namespace L_WallpaperAssistant
 
                 //TODO write error log
             }
-            wallpaperIndex = (wallpaperIndex + 1) % imagePathList.Length;
+            //wallpaperIndex = (wallpaperIndex + 1) % imagePathList.Length;
         }
 
         private async Task getWallpapers()
         {
-            var imageUrlList = await getPictureUrlList();
+            var imageUrlList = await getPictureUrlList(
+                fetchIndex, 
+                fetchNumber,
+                wallpaperWidth,
+                wallpaperHeight
+                );
             await downloadImages(imageUrlList, downloadDir);
         }
 
         private void nextWallpaperButtonClick(object sender, RoutedEventArgs e)
         {
             nextWallpaperButton.IsEnabled = false;
-            setNextWallpaper();
+            setNextWallpaper(isRandom);
             nextWallpaperButton.IsEnabled = true;
         }
 
