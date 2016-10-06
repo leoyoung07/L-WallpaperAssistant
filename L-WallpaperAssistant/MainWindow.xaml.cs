@@ -232,15 +232,28 @@ namespace L_WallpaperAssistant
 
         private void setNextWallpaper(bool isRandom = false)
         {
-            var imagePathList = Directory.GetFiles(downloadDir);
+            var imagePathList = Directory.GetFiles(downloadDir).
+                OrderByDescending(x=> 
+                    {
+                        var fileName = Path.GetFileNameWithoutExtension(x);
+                        try
+                        {
+                            var date = int.Parse(fileName.Split('_')[0]);
+                            return date;
+                        }
+                        catch (Exception)
+                        {
+                            return 0;
+                        }
+                    }).
+                ToList();
             if(isRandom)
             {
                 Random rand = new Random();
-                wallpaperIndex = rand.Next(imagePathList.Length);
+                wallpaperIndex = rand.Next(imagePathList.Count);
             }
             try
             {
-                MessageBox.Show(wallpaperIndex.ToString());
                 DesktopWallpaper.SetDesktopBackground(imagePathList[wallpaperIndex], "Stretched");
             }
             catch (Exception)
@@ -248,7 +261,7 @@ namespace L_WallpaperAssistant
 
                 //TODO write error log
             }
-            //wallpaperIndex = (wallpaperIndex + 1) % imagePathList.Length;
+            wallpaperIndex = (wallpaperIndex + 1) % imagePathList.Count;
         }
 
         private async Task getWallpapers()
