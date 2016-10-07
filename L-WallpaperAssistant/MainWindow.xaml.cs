@@ -27,6 +27,7 @@ namespace L_WallpaperAssistant
     {
         private int wallpaperIndex = 0;
         private string downloadDir = AppDomain.CurrentDomain.BaseDirectory + "download";
+        private string tempDir = AppDomain.CurrentDomain.BaseDirectory + "temp";
         private Timer downloadTimer = new Timer();
         private Timer wallpaperTimer = new Timer();
         private System.Windows.Forms.NotifyIcon notifyIcon;
@@ -86,13 +87,18 @@ namespace L_WallpaperAssistant
             return urlList;
         }
 
-        private async Task downloadImages(Dictionary<int, string> imageUrlList, string saveDir)
+        private async Task downloadImages(Dictionary<int, string> imageUrlList, string saveDir, string tempDir)
         {
             if (!Directory.Exists(saveDir))
             {
                 Directory.CreateDirectory(saveDir);
             }
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
             saveDir = saveDir.TrimEnd('\\') + "\\";
+            tempDir = tempDir.TrimEnd('\\') + "\\";
             HttpClient client = new HttpClient();
             try
             {
@@ -100,7 +106,12 @@ namespace L_WallpaperAssistant
                 {
                     string fileName = string.Format("{0}_{1}", url.Key, Path.GetFileName(url.Value));
 
-                    using (FileStream fs = File.Create(string.Format("{0}{1}", saveDir, fileName)))
+                    if (File.Exists(saveDir + fileName))
+                    {
+                        continue;
+                    }
+
+                    using (FileStream fs = File.Create(string.Format("{0}{1}", tempDir, fileName)))
                     {
                         using (Stream stream = await client.GetStreamAsync(url.Value))
                         {
@@ -113,6 +124,8 @@ namespace L_WallpaperAssistant
                             } while (bytesRead > 0);
                         }
                     }
+
+                    File.Copy(tempDir + fileName, saveDir + fileName, true);
 
                 }
             }
@@ -156,6 +169,7 @@ namespace L_WallpaperAssistant
         {
             notifyIcon = new System.Windows.Forms.NotifyIcon();
             notifyIcon.BalloonTipTitle = this.Title;
+            notifyIcon.Text = this.Title;
             notifyIcon.Icon = new System.Drawing.Icon(AppDomain.CurrentDomain.BaseDirectory + @"leo_32X32.ico");
             notifyIcon.Visible = true;
             notifyIcon.MouseClick += NotifyIcon_MouseClick;
@@ -272,7 +286,7 @@ namespace L_WallpaperAssistant
                 wallpaperWidth,
                 wallpaperHeight
                 );
-            await downloadImages(imageUrlList, downloadDir);
+            await downloadImages(imageUrlList, downloadDir, tempDir);
             notifyIcon.BalloonTipText = "Wallpapers are up to date!";
             notifyIcon.ShowBalloonTip(1000);
         }
