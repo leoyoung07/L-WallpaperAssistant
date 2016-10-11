@@ -42,6 +42,10 @@ namespace L_WallpaperAssistant
         private int wallpaperWidth;
         private int wallpaperHeight;
 
+        private delegate void wallpaperUpdateHandler();
+        private event wallpaperUpdateHandler wallpaperUpdating;
+        private event wallpaperUpdateHandler wallpaperUpdated;
+
 
 
         public MainWindow()
@@ -144,6 +148,8 @@ namespace L_WallpaperAssistant
             this.initNotifyIcon();
             this.Hide();
             this.isHidden = true;
+            wallpaperUpdating += MainWindow_wallpaperUpdating;
+            wallpaperUpdated += MainWindow_wallpaperUpdated;
             updateWallpapersButtonClick(null, null);
             nextWallpaperButtonClick(null, null);
             downloadTimer.Interval = downloadInterval * 3600 * 1000;
@@ -152,6 +158,20 @@ namespace L_WallpaperAssistant
             wallpaperTimer.Elapsed += WallpaperTimer_Elapsed;
             downloadTimer.Start();
             wallpaperTimer.Start();
+        }
+
+        private void MainWindow_wallpaperUpdated()
+        {
+            notifyIcon.BalloonTipText = "Wallpapers are up to date!";
+            notifyIcon.ShowBalloonTip(1000);
+            wallpaperIndex = 0;
+            setNextWallpaper(isRandom);
+        }
+
+        private void MainWindow_wallpaperUpdating()
+        {
+            notifyIcon.BalloonTipText = "Updating wallpapers...";
+            notifyIcon.ShowBalloonTip(1000);
         }
 
         private void getConfigurations()
@@ -242,7 +262,7 @@ namespace L_WallpaperAssistant
             downloadTimer.Start();
         }
 
-        private void setNextWallpaper(bool isRandom = false)
+        private void setNextWallpaper(bool isRandom)
         {
             var imagePathList = Directory.GetFiles(downloadDir).
                 OrderByDescending(x=> 
@@ -278,8 +298,7 @@ namespace L_WallpaperAssistant
 
         private async Task getWallpapers()
         {
-            notifyIcon.BalloonTipText = "Updating wallpapers...";
-            notifyIcon.ShowBalloonTip(1000);
+            wallpaperUpdating();
             var imageUrlList = await getPictureUrlList(
                 fetchIndex, 
                 fetchNumber,
@@ -287,8 +306,7 @@ namespace L_WallpaperAssistant
                 wallpaperHeight
                 );
             await downloadImages(imageUrlList, downloadDir, tempDir);
-            notifyIcon.BalloonTipText = "Wallpapers are up to date!";
-            notifyIcon.ShowBalloonTip(1000);
+            wallpaperUpdated();
         }
 
         private void nextWallpaperButtonClick(object sender, RoutedEventArgs e)
