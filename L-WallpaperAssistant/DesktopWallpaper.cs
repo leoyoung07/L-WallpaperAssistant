@@ -26,8 +26,6 @@ namespace L_WallpaperAssistant
             using (Bitmap bitmap = new Bitmap(imagePath))
             {
                 string wallpaperPath = AppDomain.CurrentDomain.BaseDirectory + "wallpaper.bmp";
-                File.Delete(wallpaperPath);
-                Thread.Sleep(500);
                 bitmap.Save(wallpaperPath, ImageFormat.Bmp);
 
                 RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
@@ -51,6 +49,8 @@ namespace L_WallpaperAssistant
                 }
 
                 SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, wallpaperPath, SPIF_UPDATEINIFILE | SPIF_SENDWININICHANGE);
+                File.Delete(wallpaperPath);
+                Thread.Sleep(500);
             }
         }
     }
